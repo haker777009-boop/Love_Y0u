@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Грандиозный Интерактивный Квест ✨</title>
+    <style>
+        :root {
+            --bg-color: #0c081a;
+            --accent-pink: #ff4a85;
+            --light-pink: #ff8da1;
+            --text-white: #ffffff;
+            --cyan: #4ae0ff;
+            --purple: #bf5eff;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            background: linear-gradient(135deg, #0c081a 0%, #1f0b35 50%, #300d3a 100%);
+            color: var(--text-white);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #game-container {
+            width: 94%;
+            max-width: 400px;
+            height: 85vh;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.7);
+            text-align: center;
+        }
+        
+        /* Блок динамического комплимента в углу */
+        #compliment-badge {
+            position: absolute;
+            top: -15px;
+            right: 15px;
+            background: linear-gradient(135deg, var(--purple), var(--accent-pink));
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(255, 74, 133, 0.4);
+            max-width: 75%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            animation: bounce 2s infinite alternate;
+            z-index: 100;
+            display: none;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-4px); }
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            animation: filterIn 0.35s ease-out forwards;
+        }
+        .screen.active { display: flex; }
+        @keyframes filterIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        h1 { font-size: 19px; line-height: 1.4; text-shadow: 0 0 10px var(--accent-pink); }
+        p { font-size: 14px; color: #d1c7dc; line-height: 1.5; }
+        
+        .btn {
+            background: linear-gradient(45deg, var(--accent-pink), var(--light-pink));
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 74, 133, 0.4);
+            transition: transform 0.1s;
+            outline: none;
+            z-index: 99;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-sec { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: white; box-shadow: none; }
+    </style>
+</head>
+    <style>
+        /* Уровень 1: Пазл */
+        .puzzle-box { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 160px; height: 160px; }
+        .puzzle-piece { background: rgba(255, 74, 133, 0.15); border: 2px dashed var(--accent-pink); border-radius: 16px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s ease; }
+        .puzzle-piece.aligned { background: rgba(255, 74, 133, 0.8); border-style: solid; box-shadow: 0 0 12px var(--accent-pink); }
+        
+        /* Кнопки-варианты для тестов */
+        .emoji-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; }
+        .emoji-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px; font-size: 15px; color: #fff; cursor: pointer; transition: transform 0.1s, background 0.2s; }
+        .emoji-card:active { transform: scale(0.95); }
+        
+        /* Зона ловли предметов */
+        .catch-area { width: 100%; height: 150px; position: relative; background: rgba(0, 0, 0, 0.25); border-radius: 16px; overflow: hidden; border: 1px dashed rgba(255, 255, 255, 0.1); }
+        .moving-item { position: absolute; font-size: 32px; cursor: pointer; width: 44px; height: 44px; display: flex; justify-content: center; align-items: center; -webkit-tap-highlight-color: transparent; }
+        
+        /* Провода */
+        .wire-container { display: flex; flex-direction: column; gap: 12px; width: 100%; padding: 5px; }
+        .wire-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .wire-dot { width: 45px; height: 45px; border-radius: 14px; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); transition: all 0.2s; }
+        .wire-dot.active { border-color: var(--accent-pink); background: rgba(255, 74, 133, 0.25); box-shadow: 0 0 10px var(--accent-pink); }
+        .wire-dot.done { background: #2e7d32; border-color: #4caf50; box-shadow: 0 0 10px #4caf50; }
+
+        /* Ползунок для миссии веса */
+        .slider-wrap { width: 100%; padding: 15px 10px; }
+        .custom-slider { width: 100%; -webkit-appearance: none; height: 8px; border-radius: 5px; background: rgba(255,255,255,0.1); outline: none; }
+        .custom-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-pink); cursor: pointer; box-shadow: 0 0 8px var(--accent-pink); }
+
+        /* Сетка для игры 2048 / сундуков */
+        .chest-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+        .chest-card { background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.1); border-radius: 16px; height: 75px; font-size: 32px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.2s; }
+
+        /* Финальная ловушка */
+        .btn-wrap { position: relative; width: 100%; height: 120px; margin-top: 10px; }
+        #btn-no { position: absolute; transition: all 0.1s ease-out; background: #4a3b5c; box-shadow: none; }
+        
+        /* Падающие элементы */
+        .particle { position: absolute; pointer-events: none; animation: fall linear forwards; z-index: 999; }
+        @keyframes fall { 0% { transform: translateY(-20px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+    </style>
+<body>
+    <div id="game-container">
+        <!-- Всплывающий комплимент в углу экрана -->
+        <div id="compliment-badge">✨ Принцесса</div>
+
+        <!-- Экран 1: Старт -->
+        <div id="screen-1" class="screen active">
+            <div>
+                <span style="font-size: 45px;">👑🔮</span>
+                <h1 style="margin-top: 10px;">Королевский Квест<br>из 20 испытаний</h1>
+            </div>
+            <p>Этот интерактивный тест создан эксклюзивно. Пройди все уровни шаг за шагом. Включи живую музыку перед стартом!</p>
+            <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+                <button class="btn btn-sec" id="music-btn" onclick="toggleLiveMusic()">🎵 Включить живой звук</button>
+                <button class="btn" onclick="goToLevel(2)">Начать приключение ➔</button>
+            </div>
+        </div>
+
+        <!-- Экран 2: Пазл чувств -->
+        <div id="screen-2" class="screen">
+            <div><h1>Миссия 1 / 20</h1><p>Разверни картинки ровно</p></div>
+            <div class="puzzle-box">
+                <div class="puzzle-piece" id="p1" onclick="rotP('p1')">🐾</div>
+                <div class="puzzle-piece" id="p2" onclick="rotP('p2')">🐱</div>
+                <div class="puzzle-piece" id="p3" onclick="rotP('p3')">✨</div>
+                <div class="puzzle-piece" id="p4" onclick="rotP('p4')">💖</div>
+            </div>
+            <button class="btn" id="btn-next-2" style="display:none;" onclick="goToLevel(3)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 3: Накорми спящего кота -->
+        <div id="screen-3" class="screen">
+            <div><h1>Миссия 2 / 20</h1><p>Разбуди котейку — покорми его рыбкой 5 раз!</p></div>
+            <div>
+                <div id="feed-cat" style="font-size:60px; cursor:pointer; transition:transform 0.1s;" onclick="feedCatLevel()">🐱</div>
+                <div id="feed-status" style="margin-top:10px; font-weight:bold; color:var(--light-pink);">Сытость: 0%</div>
+            </div>
+            <button class="btn" id="btn-next-3" style="display:none;" onclick="goToLevel(4)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 4: Шпион среди нас -->
+        <div id="screen-4" class="screen">
+            <div><h1>Миссия 3 / 20</h1><p>Среди котиков спрятался лисёнок. Найди его!</p></div>
+            <div class="emoji-grid">
+                <button class="emoji-card" onclick="wrongSpy(this)">🐱</button>
+                <button class="emoji-card" onclick="wrongSpy(this)">🐱</button>
+                <button class="emoji-card" onclick="wrongSpy(this)">🐱</button>
+                <button class="emoji-card" style="box-shadow:0 0 5px #fff;" onclick="correctSpy()">🦊</button>
+                <button class="emoji-card" onclick="wrongSpy(this)">🐱</button>
+                <button class="emoji-card" onclick="wrongSpy(this)">🐱</button>
+            </div>
+            <button class="btn" id="btn-next-4" style="display:none;" onclick="goToLevel(5)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 5: Поймай звезду -->
+        <div id="screen-5" class="screen">
+            <div><h1>Миссия 4 / 20</h1><p>Поймай летающую звёздочку 3 раза!</p><div id="catch-status" style="color:var(--cyan); margin-top:3px;">Поймано: 0/3</div></div>
+            <div class="catch-area"><div id="star-target" class="moving-item" onclick="catchStarLevel()">✨</div></div>
+            <button class="btn" id="btn-next-5" style="display:none;" onclick="goToLevel(6)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 6: Соедини провода -->
+        <div id="screen-6" class="screen">
+            <div><h1>Миссия 5 / 20</h1><p>Соедини одинаковые пары (нажимай сначала слева, потом справа)</p></div>
+            <div class="wire-container">
+                <div class="wire-row"><div class="wire-dot" id="wL1" onclick="clickWire('L', 1)">🍦</div><div class="wire-dot" id="wR2" onclick="clickWire('R', 2)">🎮</div></div>
+                <div class="wire-row"><div class="wire-dot" id="wL2" onclick="clickWire('L', 2)">🎮</div><div class="wire-dot" id="wR1" onclick="clickWire('R', 1)">🍦</div></div>
+            </div>
+            <button class="btn" id="btn-next-6" style="display:none;" onclick="goToLevel(7)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 7: Загадка про чай -->
+        <div id="screen-7" class="screen">
+            <div><h1>Миссия 6 / 20</h1><p>Что согревает душу в холодную зимнюю погоду?</p></div>
+            <div class="emoji-grid">
+                <button class="emoji-card" onclick="wrongChoice(this)">🧊 Лёд</button>
+                <button class="emoji-card" onclick="correctChoice(7)">☕ Уютный чай</button>
+                <button class="emoji-card" onclick="wrongChoice(this)">🧱 Кирпич</button>
+                <button class="emoji-card" onclick="wrongChoice(this)">💼 Будильник</button>
+            </div>
+            <button class="btn" id="btn-next-7" style="display:none;" onclick="goToLevel(8)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 8: Быстрый заряд -->
+        <div id="screen-8" class="screen">
+            <div><h1>Миссия 7 / 20</h1><p>Быстро тапай по батарейке, чтобы зарядить её до 100%</p></div>
+            <div>
+                <div id="bat-item" style="font-size:55px; cursor:pointer; transition:transform 0.1s;" onclick="chargeBatLevel()">🔋</div>
+                <div id="bat-status" style="margin-top:10px; font-weight:bold; color:var(--cyan);">Заряд: 0%</div>
+            </div>
+            <button class="btn" id="btn-next-8" style="display:none;" onclick="goToLevel(9)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 9: Проверка памяти -->
+        <div id="screen-9" class="screen">
+            <div><h1>Миссия 8 / 20</h1><p id="mem-status">Запомни, какой котик подмигнет!</p></div>
+            <div class="emoji-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <button class="emoji-card" id="m1" onclick="chooseMem(1)">🐱</button>
+                <button class="emoji-card" id="m2" onclick="chooseMem(2)">🐱</button>
+                <button class="emoji-card" id="m3" onclick="chooseMem(3)">🐱</button>
+            </div>
+            <button class="btn" id="btn-next-9" style="display:none;" onclick="goToLevel(10)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 10: Шар предсказаний -->
+        <div id="screen-10" class="screen">
+            <div><h1>Миссия 9 / 20</h1><p>Загляни в магический шар предсказаний</p></div>
+            <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:16px; width:100%;">
+                <div style="font-size:45px; cursor:pointer;" onclick="triggerMagicBall()">🔮</div>
+                <p id="ball-output" style="margin-top:10px; font-style:italic; min-height:35px;">Нажми на шар...</p>
+            </div>
+            <button class="btn" id="btn-next-10" style="display:none;" onclick="goToLevel(11)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 11: Весы сладостей -->
+        <div id="screen-11" class="screen">
+            <div><h1>Миссия 10 / 20</h1><p>Настрой весы ровно на 50 грамм идеального шоколада</p></div>
+            <div class="slider-wrap">
+                <input type="range" min="0" max="100" value="15" class="custom-slider" id="sweet-slider" oninput="checkSlider(this.value)">
+                <div id="slider-status" style="margin-top:15px; font-weight:bold; font-size:24px; color:var(--purple);">15 г</div>
+            </div>
+            <button class="btn" id="btn-next-11" style="display:none;" onclick="goToLevel(12)">Далее ➔</button>
+        </div>
+        <!-- Экран 12: Три сундука -->
+        <div id="screen-12" class="screen">
+            <div><h1>Миссия 11 / 20</h1><p>В одном из сундуков спрятан секретный ключ. Угадай, в каком?</p></div>
+            <div class="chest-grid">
+                <div class="chest-card" onclick="openChest(this, false)">📦</div>
+                <div class="chest-card" onclick="openChest(this, true)">📦</div>
+                <div class="chest-card" onclick="openChest(this, false)">📦</div>
+            </div>
+            <button class="btn" id="btn-next-12" style="display:none;" onclick="goToLevel(13)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 13: Загадка про космос -->
+        <div id="screen-13" class="screen">
+            <div><h1>Миссия 12 / 20</h1><p>Какое космическое тело светлее и ближе всего к нам ночью?</p></div>
+            <div class="emoji-grid">
+                <button class="emoji-card" onclick="wrongChoice(this)">☄️ Комета</button>
+                <button class="emoji-card" onclick="wrongChoice(this)">⭐ Полярная звезда</button>
+                <button class="emoji-card" onclick="correctChoice(13)">🌙 Луна</button>
+                <button class="emoji-card" onclick="wrongChoice(this)">🛸 НЛО</button>
+            </div>
+            <button class="btn" id="btn-next-13" style="display:none;" onclick="goToLevel(14)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 14: Кликер лапки -->
+        <div id="screen-14" class="screen">
+            <div><h1>Миссия 13 / 20</h1><p>Дай кошачью пятерню! Кликни на лапку 7 раз</p></div>
+            <div>
+                <div id="paw-target" style="font-size:60px; cursor:pointer; transition:transform 0.1s;" onclick="clickPawLevel()">🐾</div>
+                <div id="paw-status" style="margin-top:10px; font-weight:bold; color:var(--cyan);">Касаний: 0 / 7</div>
+            </div>
+            <button class="btn" id="btn-next-14" style="display:none;" onclick="goToLevel(15)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 15: Собери мозаику -->
+        <div id="screen-15" class="screen">
+            <div><h1>Миссия 14 / 20</h1><p>Разверни кошачьи следы в правильном направлении</p></div>
+            <div class="puzzle-box">
+                <div class="puzzle-piece" id="puz14-1" onclick="rotP14('puz14-1')">🐱</div>
+                <div class="puzzle-piece" id="puz14-2" onclick="rotP14('puz14-2')">🐱</div>
+                <div class="puzzle-piece" id="puz14-3" onclick="rotP14('puz14-3')">🐱</div>
+                <div class="puzzle-piece" id="puz14-4" onclick="rotP14('puz14-4')">🐱</div>
+            </div>
+            <button class="btn" id="btn-next-15" style="display:none;" onclick="goToLevel(16)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 16: Поймай бабочку -->
+        <div id="screen-16" class="screen">
+            <div><h1>Миссия 15 / 20</h1><p>Поймай порхающую бабочку 3 раза!</p><div id="butterfly-status" style="color:var(--light-pink); margin-top:3px;">Поймано: 0/3</div></div>
+            <div class="catch-area"><div id="butterfly-target" class="moving-item" onclick="catchButterflyLevel()">🦋</div></div>
+            <button class="btn" id="btn-next-16" style="display:none;" onclick="goToLevel(17)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 17: Логический шифр -->
+        <div id="screen-17" class="screen">
+            <div><h1>Миссия 16 / 20</h1><p>Какое математическое равенство здесь зашифровано?<br><br>🐱 + 🐱 = 4<br>🐱 + 🐾 = 5<br>🐾 = ?</p></div>
+            <div class="emoji-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <button class="emoji-card" style="font-size:18px;" onclick="wrongChoice(this)">2</button>
+                <button class="emoji-card" style="font-size:18px;" onclick="correctChoice(17)">3</button>
+                <button class="emoji-card" style="font-size:18px;" onclick="wrongChoice(this)">1</button>
+            </div>
+            <button class="btn" id="btn-next-17" style="display:none;" onclick="goToLevel(18)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 18: Кликер облака -->
+        <div id="screen-18" class="screen">
+            <div><h1>Миссия 17 / 20</h1><p>Развей тучи! Кликни по облачку 6 раз, чтобы вышло солнце</p></div>
+            <div>
+                <div id="cloud-target" style="font-size:60px; cursor:pointer; transition:transform 0.1s;" onclick="clickCloudLevel()">☁️</div>
+                <div id="cloud-status" style="margin-top:10px; font-weight:bold; color:#a2b5cd;">Пасмурно</div>
+            </div>
+            <button class="btn" id="btn-next-18" style="display:none;" onclick="goToLevel(19)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 19: Тест на внимательность -->
+        <div id="screen-19" class="screen">
+            <div><h1>Миссия 18 / 20</h1><p>Какой предмет не имеет отношения к музыке?</p></div>
+            <div class="emoji-grid">
+                <button class="emoji-card" onclick="wrongChoice(this)">🎸 Гитара</button>
+                <button class="emoji-card" onclick="wrongChoice(this)">🎹 Пианино</button>
+                <button class="emoji-card" onclick="correctChoice(19)">🍕 Пицца</button>
+                <button class="emoji-card" onclick="wrongChoice(this)">🎻 Скрипка</button>
+            </div>
+            <button class="btn" id="btn-next-19" style="display:none;" onclick="goToLevel(20)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 20: Шар судьбы часть 2 -->
+        <div id="screen-20" class="screen">
+            <div><h1>Миссия 19 / 20</h1><p>Нажми на клевер, чтобы зарядиться удачей на финал!</p></div>
+            <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:16px; width:100%;">
+                <div style="font-size:45px; cursor:pointer;" onclick="triggerLuckClover()">🍀</div>
+                <p id="clover-output" style="margin-top:10px; font-style:italic; min-height:35px;">Нажми на листок...</p>
+            </div>
+            <button class="btn" id="btn-next-20" style="display:none;" onclick="goToLevel(21)">Далее ➔</button>
+        </div>
+
+        <!-- Экран 21: Финал-ловушка -->
+        <div id="screen-21" class="screen">
+            <div>
+                <span style="font-size:55px;">🏰✨</span>
+                <h1>Миссия 20 / 20</h1>
+                <p style="margin-top:10px; font-weight: bold; color: var(--light-pink);">Мы успешно прошли все испытания! Пойдем погуляем на этих выходных? С меня вкусный кофе или чай! 😉</p>
+            </div>
+            <div class="btn-wrap">
+                <button class="btn" id="btn-yes" style="position: absolute; left: 10%; top: 35%;" onclick="winMain()" ontouchstart="winMain()">ДА!</button>
+                <button class="btn" id="btn-no" style="position: absolute; left: 55%; top: 35%;" onmouseover="dodgeNoButton()" onclick="dodgeNoButton()" ontouchstart="dodgeNoButton(event)">Нет</button>
+            </div>
+        </div>
+
+        <!-- Экран финала -->
+        <div id="screen-end" class="screen">
+            <div style="font-size:65px;">🏆✨</div>
+            <h1>Грандиозная Победа!</h1>
+            <p>Ты великолепно справилась со всеми 20 миссиями и доказала свою супер-внимательность! Напиши мне в ЛС, что ты дошла до этого экрана, и мы обсудим детали нашей прогулки. Мяу! 🐾</p>
+            <span style="font-size:13px; color:#8a7a99; margin-top:10px;">Секретный код чемпиона: MEGA_QUEST_2026</span>
+        </div>
+
+    </div>
+    <script>
+        // Глобальные переменные игры
+        let currentLvl = 1;
+        let puzState = { p1: 90, p2: 0, p3: 270, p4: 0 };
+        let puz14State = { 'puz14-1': 90, 'puz14-2': 180, 'puz14-3': 0, 'puz14-4': 270 };
+        let feedCount = 0, catchCount = 0, batCount = 0, pawCount = 0, butterflyCount = 0, cloudCount = 0;
+        let catchTimer = null, audioContext = null, musicInterval = null;
+        let selectedLeftWire = null, memTarget = 0, musicTempo = 4000;
+
+        // База данных уникальных комплиментов для каждого уровня (тонки и милые)
+        const levelCompliments = {
+            2: "Ты сегодня очень красивая ^-^",
+            3: "Кто же это? Ах да, это же та самая принцесса 👑",
+            4: "У тебя потрясающая интуиция! 🔮",
+            5: "Твоей ловкости позавидует любой котик 🐾",
+            6: "Ты мастер находить идеальные решения! ✨",
+            7: "Рядом с тобой всегда тепло и уютно, как с чаем ☕",
+            8: "Твоя энергия заряжает всё вокруг на 100%! 🔋",
+            9: "У тебя просто феноменальная память 🧠",
+            10: "Магический шар видит, что ты великолепна 🌟",
+            11: "Ты умеешь находить идеальный баланс во всем ⚖️",
+            12: "Удача явно на твоей стороне сегодня! 🍀",
+            13: "Твоя улыбка ярче, чем полная Луна в небе 🌙",
+            14: "Да ты просто эксперт по кошачьему счастью 🐱",
+            15: "Прекрасный выбор, всё встало на свои места!",
+            16: "Потрясающая реакция, бабочка поймана! 🦋",
+            17: "Ты с лёгкостью решаешь любые сложные загадки 🎓",
+            18: "Один твой взгляд может разогнать любые тучи ☀️",
+            19: "Твой превосходный вкус замечают абсолютно все 🍕",
+            20: "Ты заслуживаешь самого крутого дня на свете!",
+            21: "Финальный босс! Ты прекрасна на все 1000/10 🏆"
+        };
+
+        const friendlyQuotes = [
+            "У тебя отличное чувство юмора, с тобой всегда легко! 😄",
+            "Твоя улыбка способна поднять настроение за секунду ✨",
+            "Ты очень интересный человек, с которым приятно болтать ☕",
+            "У тебя редкий талант замечать прекрасные мелочи вокруг 🌸",
+            "Твоя энергия заряжает позитивом на весь день вперед 🔋"
+        ];
+
+        const luckQuotes = [
+            "Сегодня идеальный день для чашечки вкусного чая! ☕",
+            "Клевер говорит, что выходные пройдут просто супер! ✨",
+            "Удача на твоей стороне, впереди много улыбок! 😊",
+            "Твоё везение сейчас на максимуме, используй его! 🚀"
+        ];
+
+        // Инициализация игры
+        window.onload = function() {
+            for (let id in puzState) {
+                const el = document.getElementById(id);
+                if(el) el.style.transform = `rotate(${puzState[id]}deg)`;
+            }
+        };
+
+        // Переключение уровней и показ умного комплимента
+        function goToLevel(num) {
+            if(catchTimer) clearInterval(catchTimer);
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            
+            const target = document.getElementById(`screen-${num}`);
+            if(target) target.classList.add('active');
+            
+            currentLvl = num;
+            
+            // Динамическое обновление комплимента в углу
+            const badge = document.getElementById('compliment-badge');
+            if(badge) {
+                if(levelCompliments[num]) {
+                    badge.textContent = levelCompliments[num];
+                    badge.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+            
+            // Динамическое изменение музыки в зависимости от типа уровня
+            if(num === 3 || num === 8 || num === 14) updateMusicTempo(2500); 
+            else if(num === 7 || num === 13 || num === 17) updateMusicTempo(5000); 
+            else updateMusicTempo(4000);
+        }
+        // Музыкальный синтезатор живого звука (Lo-Fi мелодия)
+        function toggleLiveMusic() {
+            const btn = document.getElementById('music-btn');
+            if (!audioContext) {
+                try {
+                    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                    audioContext = new AudioContext();
+                    
+                    function playTone(freq, time, dur) {
+                        if(!audioContext || audioContext.state === 'suspended') return;
+                        let osc = audioContext.createOscillator();
+                        let gain = audioContext.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, time);
+                        gain.gain.setValueAtTime(0, time);
+                        gain.gain.linearRampToValueAtTime(0.03, time + 0.3);
+                        gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        osc.start(time);
+                        osc.stop(time + dur);
+                    }
+
+                    function runMusicLoop() {
+                        let now = audioContext.currentTime;
+                        playTone(261.63, now, 3.5);     
+                        playTone(329.63, now + 0.8, 3.5); 
+                        playTone(392.00, now + 1.6, 3.5); 
+                        playTone(440.00, now + 2.4, 3.5); 
+                    }
+
+                    runMusicLoop();
+                    musicInterval = setInterval(runMusicLoop, musicTempo);
+                    if(btn) btn.textContent = "⏸️ Музыка играет";
+                } catch(e) { console.log("Аудио не поддерживается"); }
+            } else {
+                if (audioContext.state === 'running') {
+                    audioContext.suspend();
+                    if(btn) btn.textContent = "🎵 Включить живой звук";
+                } else {
+                    audioContext.resume();
+                    if(btn) btn.textContent = "⏸️ Музыка играет";
+                }
+            }
+        }
+
+        function updateMusicTempo(newTempo) {
+            musicTempo = newTempo;
+            if(audioContext && musicInterval) {
+                clearInterval(musicInterval);
+                musicInterval = setInterval(() => {
+                    if(audioContext && audioContext.state === 'running') {
+                        let now = audioContext.currentTime;
+                        let osc = audioContext.createOscillator();
+                        let gain = audioContext.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(261.63, now);
+                        gain.gain.setValueAtTime(0, now);
+                        gain.gain.linearRampToValueAtTime(0.02, now + 0.2);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 2);
+                        osc.connect(gain); gain.connect(audioContext.destination);
+                        osc.start(now); osc.stop(now + 2);
+                    }
+                }, musicTempo);
+            }
+        }
+
+        // Скрытая пасхалка на логотипе
+        let logoCount = 0;
+        function eggLogo() {
+            logoCount++;
+            const logo = document.getElementById('start-logo');
+            if(logoCount === 3 && logo) logo.textContent = "🐱💬 Мяу!";
+        }
+
+        // УРОВЕНЬ 1: Пазл
+        function rotP(id) {
+            if (navigator.vibrate) navigator.vibrate(25);
+            puzState[id] = (puzState[id] + 90) % 360;
+            const el = document.getElementById(id);
+            if(!el) return;
+            el.style.transform = `rotate(${puzState[id]}deg)`;
+            if(puzState[id] === 0) el.classList.add('aligned');
+            else el.classList.remove('aligned');
+
+            if (puzState.p1 === 0 && puzState.p2 === 0 && puzState.p3 === 0 && puzState.p4 === 0) {
+                document.getElementById('btn-next-2').style.display = 'block';
+                spawnRainParticles('💖', 6);
+            }
+        }
+
+        // УРОВЕНЬ 2: Накорми кота
+        function feedCatLevel() {
+            if (navigator.vibrate) navigator.vibrate(30);
+            feedCount++;
+            const cat = document.getElementById('feed-cat');
+            const status = document.getElementById('feed-status');
+            if(cat) cat.style.transform = `scale(${1 + feedCount * 0.08})`;
+            if(status) status.textContent = `Сытость: ${feedCount * 20}%`;
+            if(feedCount === 3 && cat) cat.textContent = '😸';
+            if(feedCount >= 5) {
+                if(cat) cat.textContent = '😺🍰';
+                if(status) status.textContent = '100%! Кот сыт и доволен!';
+                document.getElementById('btn-next-3').style.display = 'block';
+                spawnRainParticles('🐟', 6);
+            }
+        }
+
+        // УРОВЕНЬ 3: Шпион среди котиков
+        function wrongSpy(btn) {
+            if (navigator.vibrate) navigator.vibrate(60);
+            btn.style.background = 'rgba(255,0,0,0.15)';
+            btn.textContent = '😹';
+        }
+        function correctSpy() {
+            if (navigator.vibrate) navigator.vibrate(35);
+            document.getElementById('btn-next-4').style.display = 'block';
+            spawnRainParticles('✨', 10);
+            initStarCatching();
+        }
+        // УРОВЕНЬ 4: Ловля звезды
+        function initStarCatching() {
+            relocateStar();
+            catchTimer = setInterval(relocateStar, 850);
+        }
+        function relocateStar() {
+            const star = document.getElementById('star-target');
+            if(!star) return;
+            star.style.left = Math.floor(Math.random() * 82) + '%';
+            star.style.top = Math.floor(Math.random() * 72) + '%';
+        }
+        function catchStarLevel() {
+            if (navigator.vibrate) navigator.vibrate(40);
+            catchCount++;
+            const status = document.getElementById('catch-status');
+            if(status) status.textContent = `Поймано: ${catchCount}/3`;
+            relocateStar();
+            if(catchCount >= 3) {
+                clearInterval(catchTimer);
+                document.getElementById('btn-next-5').style.display = 'block';
+                spawnRainParticles('⭐', 8);
+            }
+        }
+
+        // УРОВЕНЬ 5: Соединение проводов
+        function clickWire(side, num) {
+            if (navigator.vibrate) navigator.vibrate(25);
+            if(side === 'L') {
+                document.getElementById('wL1').classList.remove('active');
+                document.getElementById('wL2').classList.remove('active');
+                const clicked = document.getElementById(`wL${num}`);
+                if(clicked && !clicked.classList.contains('done')) {
+                    clicked.classList.add('active');
+                    selectedLeftWire = num;
+                }
+            } else if(side === 'R' && selectedLeftWire !== null) {
+                if(selectedLeftWire === num) {
+                    document.getElementById(`wL${num}`).classList.remove('active');
+                    document.getElementById(`wL${num}`).classList.add('done');
+                    document.getElementById(`wR${num}`).classList.add('done');
+                    selectedLeftWire = null;
+                    if(document.getElementById('wL1').classList.contains('done') && document.getElementById('wL2').classList.contains('done')) {
+                        document.getElementById('btn-next-6').style.display = 'block';
+                        spawnRainParticles('⚡', 6);
+                    }
+                } else {
+                    document.getElementById(`wL${selectedLeftWire}`).classList.remove('active');
+                    selectedLeftWire = null;
+                }
+            }
+        }
+
+        // УРОВЕНЬ 6 и др: Универсальный выбор для загадок
+        function wrongChoice(btn) {
+            if (navigator.vibrate) navigator.vibrate(60);
+            btn.style.opacity = '0.3';
+            btn.disabled = true;
+        }
+        function correctChoice(lvlNum) {
+            if (navigator.vibrate) navigator.vibrate(30);
+            document.getElementById(`btn-next-${lvlNum}`).style.display = 'block';
+            spawnRainParticles('✨', 8);
+            
+            // Если прошли уровень 7 (память), готовимся запустить его
+            if(lvlNum === 8) startMemoryGame();
+        }
+
+        // УРОВЕНЬ 7: Зарядка батарейки
+        function chargeBatLevel() {
+            if (navigator.vibrate) navigator.vibrate(20);
+            batCount += 10;
+            const bat = document.getElementById('bat-item');
+            const status = document.getElementById('bat-status');
+            
+            if(bat) bat.style.transform = `scale(1.15) rotate(${batCount}deg)`;
+            setTimeout(() => { if(bat) bat.style.transform = 'scale(1) rotate(0deg)'; }, 80);
+            
+            if(status) status.textContent = `Заряд: ${batCount}%`;
+            if(batCount >= 100) {
+                if(status) status.textContent = `100%! Генератор запущен!`;
+                document.getElementById('btn-next-8').style.display = 'block';
+                spawnRainParticles('⚡', 10);
+            }
+        }
+
+        // УРОВЕНЬ 8: Кошачья память
+        function startMemoryGame() {
+            memTarget = Math.floor(Math.random() * 3) + 1;
+            setTimeout(() => {
+                const el = document.getElementById(`m${memTarget}`);
+                if(el) {
+                    el.textContent = '😉';
+                    el.style.boxShadow = '0 0 15px var(--cyan)';
+                }
+                setTimeout(() => {
+                    if(el) {
+                        el.textContent = '🐱';
+                        el.style.boxShadow = 'none';
+                    }
+                    const status = document.getElementById('mem-status');
+                    if(status) status.textContent = 'Кто из них сейчас подмигнул? Жми!';
+                }, 900);
+            }, 500);
+        }
+        function chooseMem(num) {
+            if(num === memTarget) {
+                if (navigator.vibrate) navigator.vibrate(30);
+                document.getElementById(`m${num}`).style.background = 'rgba(74,224,255,0.25)';
+                document.getElementById('btn-next-9').style.display = 'block';
+                spawnRainParticles('💡', 6);
+            } else {
+                if (navigator.vibrate) navigator.vibrate(80);
+                const status = document.getElementById('mem-status');
+                if(status) status.textContent = 'Не угадала! Котик перезапускается...';
+                startMemoryGame();
+            }
+        }
+
+        // УРОВЕНЬ 9: Магический шар предсказаний
+        function triggerMagicBall() {
+            if (navigator.vibrate) navigator.vibrate(30);
+            const out = document.getElementById('ball-output');
+            const quote = friendlyQuotes[Math.floor(Math.random() * friendlyQuotes.length)];
+            if(out) {
+                out.textContent = quote;
+                out.style.animation = 'fadeIn 0.3s ease';
+            }
+            document.getElementById('btn-next-10').style.display = 'block';
+        }
+        // УРОВЕНЬ 10: Весы сладостей (ползунок)
+        function checkSlider(val) {
+            const status = document.getElementById('slider-status');
+            if(status) status.textContent = val + ' г';
+            
+            // Если попала точно в 50 грамм
+            if(parseInt(val) === 50) {
+                if (navigator.vibrate) navigator.vibrate(35);
+                if(status) status.style.color = '#4caf50';
+                document.getElementById('btn-next-11').style.display = 'block';
+                spawnRainParticles('🍫', 8);
+            }
+        }
+
+        // УРОВЕНЬ 11: Три сундука
+        function openChest(card, isCorrect) {
+            if(isCorrect) {
+                if (navigator.vibrate) navigator.vibrate(30);
+                card.textContent = '🔑';
+                card.style.borderColor = '#4caf50';
+                document.getElementById('btn-next-12').style.display = 'block';
+                spawnRainParticles('✨', 8);
+            } else {
+                if (navigator.vibrate) navigator.vibrate(60);
+                card.textContent = '❌';
+                card.style.opacity = '0.4';
+            }
+        }
+
+        // УРОВЕНЬ 13: Кликер лапки
+        function clickPawLevel() {
+            if (navigator.vibrate) navigator.vibrate(20);
+            pawCount++;
+            const paw = document.getElementById('paw-target');
+            const status = document.getElementById('paw-status');
+            
+            if(paw) paw.style.transform = `scale(1.2)`;
+            setTimeout(() => { if(paw) paw.style.transform = 'scale(1)'; }, 80);
+            
+            if(status) status.textContent = `Касаний: ${pawCount} / 7`;
+            if(pawCount >= 7) {
+                document.getElementById('btn-next-14').style.display = 'block';
+                spawnRainParticles('🐾', 10);
+            }
+        }
+
+        // УРОВЕНЬ 14: Мозаика со следами котиков
+        function rotP14(id) {
+            if (navigator.vibrate) navigator.vibrate(25);
+            puz14State[id] = (puz14State[id] + 90) % 360;
+            const el = document.getElementById(id);
+            if(!el) return;
+            el.style.transform = `rotate(${puz14State[id]}deg)`;
+            
+            if(puz14State[id] === 0) el.classList.add('aligned');
+            else el.classList.remove('aligned');
+
+            if (puz14State['puz14-1'] === 0 && puz14State['puz14-2'] === 0 && puz14State['puz14-3'] === 0 && puz14State['puz14-4'] === 0) {
+                document.getElementById('btn-next-15').style.display = 'block';
+                spawnRainParticles('💖', 6);
+            }
+        }
+
+        // УРОВЕНЬ 15: Ловля бабочки
+        function startButterflyCatching() {
+            relocateButterfly();
+            catchTimer = setInterval(relocateButterfly, 800);
+        }
+        function relocateButterfly() {
+            const b = document.getElementById('butterfly-target');
+            if(!b) return;
+            b.style.left = Math.floor(Math.random() * 82) + '%';
+            b.style.top = Math.floor(Math.random() * 72) + '%';
+        }
+        function catchButterflyLevel() {
+            if (navigator.vibrate) navigator.vibrate(40);
+            butterflyCount++;
+            const status = document.getElementById('butterfly-status');
+            if(status) status.textContent = `Поймано: ${butterflyCount}/3`;
+            relocateButterfly();
+            if(butterflyCount >= 3) {
+                clearInterval(catchTimer);
+                document.getElementById('btn-next-16').style.display = 'block';
+                spawnRainParticles('🦋', 8);
+            }
+        }
+        // УРОВЕНЬ 17: Развей тучи (кликер облака)
+        function clickCloudLevel() {
+            if (navigator.vibrate) navigator.vibrate(25);
+            cloudCount++;
+            const cloud = document.getElementById('cloud-target');
+            const status = document.getElementById('cloud-status');
+            
+            if(cloud) cloud.style.transform = `scale(1.15)`;
+            setTimeout(() => { if(cloud) cloud.style.transform = 'scale(1)'; }, 80);
+            
+            if(cloudCount === 3 && cloud) cloud.textContent = '⛅';
+            if(cloudCount >= 6) {
+                if(cloud) cloud.textContent = '☀️';
+                if(status) status.textContent = 'Ясно! Вышло солнышко!';
+                document.getElementById('btn-next-18').style.display = 'block';
+                spawnRainParticles('☀️', 8);
+            }
+        }
+
+        // УРОВЕНЬ 19: Клевер удачи
+        function triggerLuckClover() {
+            if (navigator.vibrate) navigator.vibrate(30);
+            const out = document.getElementById('clover-output');
+            const quote = luckQuotes[Math.floor(Math.random() * luckQuotes.length)];
+            if(out) {
+                out.textContent = quote;
+                out.style.animation = 'fadeIn 0.3s ease';
+            }
+            document.getElementById('btn-next-20').style.display = 'block';
+        }
+
+        // УРОВЕНЬ 20: Убегающая кнопка "Нет"
+        function dodgeNoButton(event) {
+            if(event) { event.preventDefault(); event.stopPropagation(); }
+            const btnNo = document.getElementById('btn-no');
+            if(!btnNo) return;
+            btnNo.style.left = (Math.floor(Math.random() * 55) + 5) + '%';
+            btnNo.style.top = (Math.floor(Math.random() * 55) + 5) + '%';
+        }
+
+        // СТОПРОЦЕНТНАЯ ПОБЕДА ДЛЯ СМАРТФОНОВ (Кнопка ДА)
+        function winMain() {
+            if (navigator.vibrate) navigator.vibrate();
+            
+            // Взрываем экран эффектами по максимуму
+            spawnRainParticles('🐱', 25);
+            spawnRainParticles('❤️', 25);
+            spawnRainParticles('✨', 25);
+            
+            // Моментально переносим на секретный финальный экран
+            setTimeout(() => { 
+                goToLevel('end'); 
+            }, 200);
+        }
+
+        // Оптимизированный генератор падающих частиц
+        function spawnRainParticles(symbol, count) {
+            for (let i = 0; i < count; i++) {
+                const p = document.createElement('div');
+                p.classList.add('particle');
+                p.textContent = symbol;
+                p.style.fontSize = Math.floor(Math.random() * 15 + 16) + 'px';
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.top = '-30px';
+                const duration = (Math.random() * 1.3 + 1);
+                p.style.animationDuration = duration + 's';
+                document.body.appendChild(p);
+                setTimeout(() => { p.remove(); }, (duration + 0.4) * 1000);
+            }
+        }
+    </script>
+</body>
+</html>
